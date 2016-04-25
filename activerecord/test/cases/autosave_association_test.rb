@@ -2,12 +2,20 @@ require 'cases/helper'
 require 'models/bird'
 require 'models/comment'
 require 'models/company'
+require 'models/computer'
 require 'models/customer'
 require 'models/developer'
-require 'models/computer'
+require 'models/electron'
+require 'models/entry'
+require 'models/eye'
+require 'models/guitar'
 require 'models/invoice'
 require 'models/line_item'
+require 'models/member'
+require 'models/member_detail'
+require 'models/molecule'
 require 'models/order'
+require 'models/organization'
 require 'models/parrot'
 require 'models/person'
 require 'models/pirate'
@@ -18,13 +26,6 @@ require 'models/ship_part'
 require 'models/tag'
 require 'models/tagging'
 require 'models/treasure'
-require 'models/eye'
-require 'models/electron'
-require 'models/molecule'
-require 'models/member'
-require 'models/member_detail'
-require 'models/organization'
-require 'models/guitar'
 require 'models/tuning_peg'
 
 class TestAutosaveAssociationsInGeneral < ActiveRecord::TestCase
@@ -1696,5 +1697,36 @@ class TestAutosaveAssociationWithTouch < ActiveRecord::TestCase
   def test_autosave_with_touch_should_not_raise_system_stack_error
     invoice = Invoice.create
     assert_nothing_raised { invoice.line_items.create(:amount => 10) }
+  end
+end
+
+class TestAutosaveAssociationValidationErrorMessage < ActiveRecord::TestCase
+  Order.class_eval do
+    has_many :entries, index_errors: true
+    accepts_nested_attributes_for :entries
+  end
+
+  def setup
+    @order = Order.create!(entries_attributes: [
+      { title: 'entry_1' },
+      { title: 'entry_2' }])
+    @entry_1 = @order.entries.first
+    @entry_2 = @order.entries.last
+  end
+
+  def test_update_both_entries_with_invalid_second
+    @order.update(entries_attributes: [
+      { id: @entry_1.id, title: 'entry_1_updted' },
+      { id: @entry_2.id, title: '' }])
+    assert_equal 1, @order.errors.count
+    assert_equal 'entries[1].title', @order.errors.messages.keys.first.to_s
+  end
+
+  def test_update_only_second_entry_with_invalid_second
+    @order.update(entries_attributes: [
+      { id: @entry_1.id, title: 'entry_1' },
+      { id: @entry_2.id, title: '' }])
+    assert_equal 1, @order.errors.count
+    assert_equal 'entries[1].title', @order.errors.messages.keys.first.to_s
   end
 end

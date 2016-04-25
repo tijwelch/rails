@@ -309,6 +309,11 @@ ActiveRecord::Schema.define do
     t.integer :course_id, null: false
   end
 
+  create_table :entries, force: true  do |t|
+    t.integer :order_id
+    t.string :title
+  end
+
   create_table :essays, force: true do |t|
     t.string :name
     t.string :writer_id
